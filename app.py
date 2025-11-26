@@ -88,6 +88,15 @@ st.sidebar.markdown(
     "**Dataset**: COVID-19 Corona Virus Report  \nSumber: Kaggle – imdevskp"
 )
 
+# 🔽 Tambahan identitas kelompok – tempel persis di sini
+st.sidebar.markdown("---")
+st.sidebar.markdown(
+    "**Kelompok Lebah Ganteng**  \n"
+    "Muhammad Dimas Sudirman – 021002404001  \n"
+    "Ari Wahyu Patriangga – 021002404007  \n"
+    "Lola Aritasari – 021002404004"
+)
+
 # -----------------------------------------------------------
 # Helper formatting
 # -----------------------------------------------------------
