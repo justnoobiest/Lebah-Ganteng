@@ -2,21 +2,14 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# -----------------------------------------------------------
-# Page configuration
-# -----------------------------------------------------------
 st.set_page_config(
     page_title="COVID-19 Global Dashboard",
     page_icon="🦠",
     layout="wide",
 )
 
-# -----------------------------------------------------------
-# Data loading with caching
-# -----------------------------------------------------------
 @st.cache_data
 def load_data():
-    # Semua CSV di folder yang sama dengan app.py
     day_wise = pd.read_csv("day_wise.csv")
     full_grouped = pd.read_csv("full_grouped.csv")
     country_latest = pd.read_csv("country_wise_latest.csv")
@@ -24,16 +17,13 @@ def load_data():
     usa_county = pd.read_csv("usa_county_wise.csv")
     clean = pd.read_csv("covid_19_clean_complete.csv")
 
-    # Date -> datetime
     day_wise["Date"] = pd.to_datetime(day_wise["Date"])
     full_grouped["Date"] = pd.to_datetime(full_grouped["Date"])
     clean["Date"] = pd.to_datetime(clean["Date"])
     usa_county["Date"] = pd.to_datetime(usa_county["Date"])
 
-    # Sedikit rapihin tipe data numerik
     for df in [day_wise, full_grouped, country_latest, worldometer, usa_county, clean]:
         for col in df.select_dtypes(include="object").columns:
-            # kolom label jangan diotak-atik
             if col.lower() in [
                 "country/region",
                 "province/state",
@@ -53,8 +43,6 @@ def load_data():
 
 day_wise, full_grouped, country_latest, worldometer, usa_county, clean = load_data()
 
-# Helper global
-# all_dates sebagai Timestamp -> ambil tanggal Python (date) untuk slider
 all_dates = pd.to_datetime(day_wise["Date"].unique())
 min_date = all_dates.min().date()
 max_date = all_dates.max().date()
@@ -66,9 +54,6 @@ default_countries = [
 if not default_countries:
     default_countries = all_countries[:3]
 
-# -----------------------------------------------------------
-# Sidebar navigation
-# -----------------------------------------------------------
 st.sidebar.title("🧭 Navigation")
 
 page = st.sidebar.radio(
@@ -85,10 +70,10 @@ page = st.sidebar.radio(
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(
-    "**Dataset**: COVID-19 Corona Virus Report  \nSumber: Kaggle – imdevskp"
+    "**Dataset**: COVID-19 Corona Virus Report  \n"
+    "Sumber: [Kaggle – imdevskp](https://www.kaggle.com/datasets/imdevskp/corona-virus-report)"
 )
 
-# 🔽 Tambahan identitas kelompok
 st.sidebar.markdown("---")
 st.sidebar.markdown(
     "**Kelompok Lebah Ganteng**  \n"
@@ -97,9 +82,7 @@ st.sidebar.markdown(
     "Lola Aritasari – 021002404004"
 )
 
-# -----------------------------------------------------------
-# Helper formatting
-# -----------------------------------------------------------
+
 def format_number(x):
     try:
         return f"{int(x):,}"
@@ -107,9 +90,6 @@ def format_number(x):
         return "-"
 
 
-# ===========================================================
-# 1. OVERVIEW
-# ===========================================================
 if page == "🏠 Overview":
     st.markdown(
         "<h1 style='text-align:center'>🦠 COVID-19 Global Dashboard</h1>",
@@ -143,11 +123,9 @@ if page == "🏠 Overview":
     with c4:
         st.metric("Active Cases", format_number(latest_row["Active"]))
 
-    # ---------- NEW: pie chart + top countries ----------
     st.markdown("### 🌐 Komposisi kasus global & negara dengan kasus terbanyak")
     col1, col2 = st.columns(2)
 
-    # Pie: Active vs Recovered vs Deaths
     with col1:
         pie_data = pd.DataFrame(
             {
@@ -169,7 +147,6 @@ if page == "🏠 Overview":
         fig_pie.update_traces(textposition="inside", textinfo="percent+label")
         st.plotly_chart(fig_pie, use_container_width=True)
 
-    # Bar: top 10 countries by confirmed (country_wise_latest)
     with col2:
         top10 = (
             country_latest[country_latest["Confirmed"] > 0]
@@ -185,7 +162,6 @@ if page == "🏠 Overview":
         fig_top.update_layout(xaxis_tickangle=-45)
         st.plotly_chart(fig_top, use_container_width=True)
 
-    # ---------- Existing line & bar ----------
     st.markdown("### 📈 Tren global dari waktu ke waktu")
 
     metrics_to_plot = st.multiselect(
@@ -220,7 +196,6 @@ if page == "🏠 Overview":
     )
     st.plotly_chart(fig_new, use_container_width=True)
 
-    # ---------- NEW: correlation heatmap ----------
     st.markdown("### 🔍 Korelasi antar indikator global")
     corr_cols = [
         col
@@ -246,9 +221,6 @@ if page == "🏠 Overview":
         st.plotly_chart(fig_corr, use_container_width=True)
 
 
-# ===========================================================
-# 2. GLOBAL MAP
-# ===========================================================
 elif page == "🌍 Global Map":
     st.header("🌍 Global Map")
 
@@ -294,9 +266,6 @@ elif page == "🌍 Global Map":
         )
 
 
-# ===========================================================
-# 3. COUNTRY DASHBOARD
-# ===========================================================
 elif page == "📊 Country Dashboard":
     st.header("📊 Country Dashboard")
 
@@ -340,7 +309,6 @@ elif page == "📊 Country Dashboard":
         with c4:
             st.metric("Active Cases", format_number(latest["Active"]))
 
-        # ---------- NEW: pie + daily new ----------
         st.markdown(f"### 🇨🇮 Komposisi kasus & kasus baru di {country}")
         col1, col2 = st.columns(2)
 
@@ -388,7 +356,6 @@ elif page == "📊 Country Dashboard":
                 fig_new_country.update_layout(hovermode="x unified")
                 st.plotly_chart(fig_new_country, use_container_width=True)
 
-        # ---------- Existing time-series ----------
         st.markdown(f"### Tren waktu di {country}")
         metrics = [
             "Confirmed",
@@ -430,9 +397,6 @@ elif page == "📊 Country Dashboard":
             st.dataframe(country_df.reset_index(drop=True))
 
 
-# ===========================================================
-# 4. COUNTRY COMPARISON
-# ===========================================================
 elif page == "📈 Country Comparison":
     st.header("📈 Country Comparison")
 
@@ -448,7 +412,6 @@ elif page == "📈 Country Comparison":
         index=0,
     )
 
-    # Slider pakai tipe date (bukan pandas.Timestamp)
     date_range = st.slider(
         "Rentang tanggal:",
         min_value=min_date,
@@ -459,7 +422,6 @@ elif page == "📈 Country Comparison":
     if not countries:
         st.info("Pilih minimal satu negara.")
     else:
-        # Bandingkan dengan .dt.date karena kolom Date di dataframe adalah datetime
         compare_df = full_grouped[
             (full_grouped["Country/Region"].isin(countries))
             & (full_grouped["Date"].dt.date.between(date_range[0], date_range[1]))
@@ -486,7 +448,6 @@ elif page == "📈 Country Comparison":
                 max_value=date_range[1],
             )
 
-            # Cocokkan tanggal snapshot dengan Date di dataframe
             snap_df = compare_df[compare_df["Date"].dt.date == snap_date]
             snap_df = snap_df[["Country/Region", metric]].sort_values(
                 metric, ascending=False
@@ -494,9 +455,6 @@ elif page == "📈 Country Comparison":
             st.dataframe(snap_df.reset_index(drop=True))
 
 
-# ===========================================================
-# 5. USA VIEW
-# ===========================================================
 elif page == "🗽 USA View":
     st.header("🗽 USA County / State View")
 
@@ -533,7 +491,6 @@ elif page == "🗽 USA View":
         )
         st.plotly_chart(fig, use_container_width=True)
 
-        # ---------- NEW: top 10 county ----------
         st.markdown(f"### Top 10 county dengan kasus tertinggi di {state}")
         if "Admin2" in state_df.columns:
             latest_state = state_df[state_df["Date"] == state_df["Date"].max()]
@@ -565,9 +522,6 @@ elif page == "🗽 USA View":
             )
 
 
-# ===========================================================
-# 6. DATA EXPLORER
-# ===========================================================
 elif page == "📑 Data Explorer":
     st.header("📑 Data Explorer")
 
