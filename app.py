@@ -88,7 +88,7 @@ st.sidebar.markdown(
     "**Dataset**: COVID-19 Corona Virus Report  \nSumber: Kaggle – imdevskp"
 )
 
-# 🔽 Tambahan identitas kelompok – tempel persis di sini
+# 🔽 Tambahan identitas kelompok
 st.sidebar.markdown("---")
 st.sidebar.markdown(
     "**Kelompok Lebah Ganteng**  \n"
@@ -143,6 +143,49 @@ if page == "🏠 Overview":
     with c4:
         st.metric("Active Cases", format_number(latest_row["Active"]))
 
+    # ---------- NEW: pie chart + top countries ----------
+    st.markdown("### 🌐 Komposisi kasus global & negara dengan kasus terbanyak")
+    col1, col2 = st.columns(2)
+
+    # Pie: Active vs Recovered vs Deaths
+    with col1:
+        pie_data = pd.DataFrame(
+            {
+                "Status": ["Active", "Recovered", "Deaths"],
+                "Count": [
+                    max(latest_row["Active"], 0),
+                    max(latest_row["Recovered"], 0),
+                    max(latest_row["Deaths"], 0),
+                ],
+            }
+        )
+        fig_pie = px.pie(
+            pie_data,
+            names="Status",
+            values="Count",
+            hole=0.45,
+            title="Komposisi kasus global (snapshot terakhir)",
+        )
+        fig_pie.update_traces(textposition="inside", textinfo="percent+label")
+        st.plotly_chart(fig_pie, use_container_width=True)
+
+    # Bar: top 10 countries by confirmed (country_wise_latest)
+    with col2:
+        top10 = (
+            country_latest[country_latest["Confirmed"] > 0]
+            .sort_values("Confirmed", ascending=False)
+            .head(10)
+        )
+        fig_top = px.bar(
+            top10,
+            x="Country/Region",
+            y="Confirmed",
+            title="🔝 10 negara dengan kasus terkonfirmasi tertinggi",
+        )
+        fig_top.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_top, use_container_width=True)
+
+    # ---------- Existing line & bar ----------
     st.markdown("### 📈 Tren global dari waktu ke waktu")
 
     metrics_to_plot = st.multiselect(
@@ -176,6 +219,31 @@ if page == "🏠 Overview":
         title="New confirmed cases per day",
     )
     st.plotly_chart(fig_new, use_container_width=True)
+
+    # ---------- NEW: correlation heatmap ----------
+    st.markdown("### 🔍 Korelasi antar indikator global")
+    corr_cols = [
+        col
+        for col in [
+            "Confirmed",
+            "Deaths",
+            "Recovered",
+            "Active",
+            "New cases",
+            "New deaths",
+            "New recovered",
+        ]
+        if col in day_wise.columns
+    ]
+    if len(corr_cols) >= 2:
+        corr_mat = day_wise[corr_cols].corr()
+        fig_corr = px.imshow(
+            corr_mat,
+            text_auto=".2f",
+            color_continuous_scale="RdBu_r",
+            title="Matriks korelasi indikator global (harian)",
+        )
+        st.plotly_chart(fig_corr, use_container_width=True)
 
 
 # ===========================================================
@@ -255,23 +323,72 @@ elif page == "📊 Country Dashboard":
             st.metric(
                 "Total Confirmed",
                 format_number(latest["Confirmed"]),
-                delta=format_number(latest["New cases"]),
+                delta=format_number(latest.get("New cases", 0)),
             )
         with c2:
             st.metric(
                 "Total Deaths",
                 format_number(latest["Deaths"]),
-                delta=format_number(latest["New deaths"]),
+                delta=format_number(latest.get("New deaths", 0)),
             )
         with c3:
             st.metric(
                 "Total Recovered",
                 format_number(latest["Recovered"]),
-                delta=format_number(latest["New recovered"]),
+                delta=format_number(latest.get("New recovered", 0)),
             )
         with c4:
             st.metric("Active Cases", format_number(latest["Active"]))
 
+        # ---------- NEW: pie + daily new ----------
+        st.markdown(f"### 🇨🇮 Komposisi kasus & kasus baru di {country}")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            pie_country = pd.DataFrame(
+                {
+                    "Status": ["Active", "Recovered", "Deaths"],
+                    "Count": [
+                        max(latest["Active"], 0),
+                        max(latest["Recovered"], 0),
+                        max(latest["Deaths"], 0),
+                    ],
+                }
+            )
+            fig_pie_country = px.pie(
+                pie_country,
+                names="Status",
+                values="Count",
+                hole=0.45,
+                title=f"Komposisi kasus di {country} (snapshot terakhir)",
+            )
+            fig_pie_country.update_traces(textposition="inside", textinfo="percent+label")
+            st.plotly_chart(fig_pie_country, use_container_width=True)
+
+        with col2:
+            new_cols = [
+                col
+                for col in ["New cases", "New deaths", "New recovered"]
+                if col in country_df.columns
+            ]
+            if new_cols:
+                long_new = country_df[["Date"] + new_cols].melt(
+                    id_vars="Date",
+                    value_vars=new_cols,
+                    var_name="Jenis",
+                    value_name="Jumlah",
+                )
+                fig_new_country = px.bar(
+                    long_new,
+                    x="Date",
+                    y="Jumlah",
+                    color="Jenis",
+                    title=f"Kasus baru harian di {country}",
+                )
+                fig_new_country.update_layout(hovermode="x unified")
+                st.plotly_chart(fig_new_country, use_container_width=True)
+
+        # ---------- Existing time-series ----------
         st.markdown(f"### Tren waktu di {country}")
         metrics = [
             "Confirmed",
@@ -345,8 +462,7 @@ elif page == "📈 Country Comparison":
         # Bandingkan dengan .dt.date karena kolom Date di dataframe adalah datetime
         compare_df = full_grouped[
             (full_grouped["Country/Region"].isin(countries))
-            & (full_grouped["Date"].dt.date.between(date_range[0], date_range[1])
-               )
+            & (full_grouped["Date"].dt.date.between(date_range[0], date_range[1]))
         ]
 
         if compare_df.empty:
@@ -416,6 +532,28 @@ elif page == "🗽 USA View":
             title=f"Perkembangan kasus di {state}",
         )
         st.plotly_chart(fig, use_container_width=True)
+
+        # ---------- NEW: top 10 county ----------
+        st.markdown(f"### Top 10 county dengan kasus tertinggi di {state}")
+        if "Admin2" in state_df.columns:
+            latest_state = state_df[state_df["Date"] == state_df["Date"].max()]
+            county_agg = (
+                latest_state.groupby("Admin2")[["Confirmed", "Deaths"]]
+                .sum()
+                .reset_index()
+            )
+            top_counties = county_agg.sort_values(
+                "Confirmed", ascending=False
+            ).head(10)
+            fig_county = px.bar(
+                top_counties,
+                x="Admin2",
+                y="Confirmed",
+                hover_data=["Deaths"],
+                title=f"🔝 10 county dengan kasus tertinggi di {state}",
+            )
+            fig_county.update_layout(xaxis_tickangle=-45)
+            st.plotly_chart(fig_county, use_container_width=True)
 
         with st.expander("📋 Data county mentah"):
             show_cols = ["Date", "Admin2", "Province_State", "Confirmed", "Deaths"]
