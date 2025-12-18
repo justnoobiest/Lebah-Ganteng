@@ -478,6 +478,69 @@ default_countries = [c for c in ["Indonesia", "US", "Italy", "China", "India"] i
 if not default_countries and all_countries:
     default_countries = all_countries[:3]
 
+@st.cache_data
+def load_idn_data():
+    df = pd.read_csv("covid_19_indonesia_time_series_all.csv")
+    df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y", errors="coerce")
+    df = df.dropna(subset=["Date"])
+    return df
+
+def indonesia_province_view():
+    st.title("🇮🇩 Indonesia Province View")
+    st.caption("Pilih provinsi untuk melihat tren dan perbandingan antar provinsi.")
+
+    df = load_idn_data()
+    prov_df = df[df["Location"] != "Indonesia"].copy()
+
+    provinces = sorted(prov_df["Location"].dropna().unique())
+    default_idx = provinces.index("DKI Jakarta") if "DKI Jakarta" in provinces else 0
+    prov = st.selectbox("Pilih Provinsi:", provinces, index=default_idx)
+
+    dfp = prov_df[prov_df["Location"] == prov].sort_values("Date")
+    last = dfp.iloc[-1]
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Total Confirmed", f"{int(last['Total Cases']):,}")
+    c2.metric("Total Deaths", f"{int(last['Total Deaths']):,}")
+    c3.metric("Total Recovered", f"{int(last['Total Recovered']):,}")
+    c4.metric("Total Active", f"{int(last['Total Active Cases']):,}")
+
+    st.subheader(f"Perkembangan kasus di {prov}")
+
+    metric = st.selectbox(
+        "Metrik:",
+        ["New Cases", "New Deaths", "New Recovered", "New Active Cases",
+         "Total Cases", "Total Deaths", "Total Recovered", "Total Active Cases"],
+        index=0
+    )
+    view = st.selectbox("Tampilan:", ["Harian", "Rata-rata 7 hari"], index=1)
+
+    plot_df = dfp[["Date", metric]].copy()
+    if view == "Rata-rata 7 hari":
+        plot_df[metric] = plot_df[metric].rolling(7).mean()
+
+    fig_line = px.line(plot_df, x="Date", y=metric)
+    try:
+        st.plotly_chart(fig_line, width="stretch")
+    except TypeError:
+        st.plotly_chart(fig_line, use_container_width=True)
+
+    st.subheader("⬆️ 10 provinsi dengan nilai tertinggi (snapshot tanggal)")
+    min_d, max_d = prov_df["Date"].min(), prov_df["Date"].max()
+    snap = st.slider("Pilih tanggal:", min_value=min_d.date(), max_value=max_d.date(), value=max_d.date())
+    snap_df = prov_df[prov_df["Date"].dt.date == snap].copy()
+
+    rank_metric = st.selectbox("Ranking berdasarkan:", ["Total Cases", "New Cases", "Total Deaths", "New Deaths"], index=0)
+    top10 = snap_df.nlargest(10, rank_metric)[["Location", rank_metric]].sort_values(rank_metric, ascending=False)
+
+    fig_bar = px.bar(top10, x="Location", y=rank_metric)
+    try:
+        st.plotly_chart(fig_bar, width="stretch")
+    except TypeError:
+        st.plotly_chart(fig_bar, use_container_width=True)
+
+    with st.expander("📁 Data provinsi (mentah)"):
+        st.dataframe(dfp)
 
 st.sidebar.title("🧭 Navigation")
 
@@ -491,6 +554,7 @@ page = st.sidebar.radio(
         "📊 Country Dashboard",
         "📈 Country Comparison",
         "🗽 USA View",
+	"🇮🇩 Indonesia Province View",
         "🔥 Insights & Hotspots",
         "⏱️ Timelapse",
         "📑 Data Explorer",
@@ -1264,6 +1328,10 @@ elif page == "🗽 USA View":
                 with st.expander("📋 Data county mentah"):
                     show_cols = [c for c in ["Date", "Admin2", "Province_State", "Confirmed", "Deaths"] if c in usa_county.columns]
                     st.dataframe(usa_county[usa_county["Province_State"] == state][show_cols].sort_values(["Date", "Admin2"]))
+
+
+elif page == "🇮🇩 Indonesia Province View":
+    indonesia_province_view()
 
 
 elif page == "🔥 Insights & Hotspots":
