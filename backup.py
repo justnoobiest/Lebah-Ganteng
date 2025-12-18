@@ -3,11 +3,7 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 
-st.set_page_config(
-    page_title="COVID-19 Global Dashboard",
-    page_icon="🦠",
-    layout="wide",
-)
+st.set_page_config(page_title="COVID-19 Global Dashboard", page_icon="🦠", layout="wide")
 
 @st.cache_data
 def load_data():
@@ -18,7 +14,7 @@ def load_data():
     usa_county = pd.read_csv("usa_county_wise.csv")
     clean = pd.read_csv("covid_19_clean_complete.csv")
 
-    for df in [day_wise, full_grouped, clean, usa_county]:
+    for df in [day_wise, full_grouped, usa_county, clean]:
         if "Date" in df.columns:
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
 
@@ -68,6 +64,87 @@ def normalize_country(s):
     )
 
 
+def nearest_row_by_date(df, date_ts):
+    if df.empty or "Date" not in df.columns:
+        return None
+    d = df.dropna(subset=["Date"]).copy()
+    if d.empty:
+        return None
+    idx = (d["Date"] - pd.to_datetime(date_ts)).abs().idxmin()
+    return d.loc[idx]
+
+
+def build_story_events(df):
+    if df.empty or "Date" not in df.columns:
+        return []
+
+    d = df.dropna(subset=["Date"]).sort_values("Date").copy()
+    if d.empty:
+        return []
+
+    def first_above(col, frac=0.01):
+        if col not in d.columns:
+            return None
+        s = pd.to_numeric(d[col], errors="coerce").fillna(0)
+        mx = float(s.max())
+        if mx <= 0:
+            return None
+        thr = mx * float(frac)
+        hit = d[s >= thr]
+        if hit.empty:
+            return None
+        return pd.to_datetime(hit.iloc[0]["Date"])
+
+    def peak_day(col, rolling=7):
+        if col not in d.columns:
+            return None
+        s = pd.to_numeric(d[col], errors="coerce").fillna(0)
+        if rolling and rolling > 1:
+            s2 = s.rolling(rolling, min_periods=max(1, rolling // 2)).mean()
+        else:
+            s2 = s
+        idx = s2.idxmax()
+        return pd.to_datetime(d.loc[idx, "Date"])
+
+    events = []
+    start_date = pd.to_datetime(d["Date"].min())
+    end_date = pd.to_datetime(d["Date"].max())
+
+    events.append({"date": start_date, "title": "Awal periode data", "desc": "Mulai observasi time-series."})
+
+    f_cases = first_above("New cases", frac=0.01)
+    if f_cases is not None:
+        events.append({"date": f_cases, "title": "Kasus baru mulai meningkat", "desc": "Hari pertama New cases mencapai ambang signifikan."})
+
+    f_deaths = first_above("New deaths", frac=0.01)
+    if f_deaths is not None:
+        events.append({"date": f_deaths, "title": "Kematian baru mulai meningkat", "desc": "Hari pertama New deaths mencapai ambang signifikan."})
+
+    p_cases = peak_day("New cases", rolling=7) or peak_day("New cases", rolling=0)
+    if p_cases is not None:
+        events.append({"date": p_cases, "title": "Puncak kasus baru (7D avg)", "desc": "Puncak rata-rata 7 hari untuk New cases."})
+
+    p_deaths = peak_day("New deaths", rolling=7) or peak_day("New deaths", rolling=0)
+    if p_deaths is not None:
+        events.append({"date": p_deaths, "title": "Puncak kematian baru (7D avg)", "desc": "Puncak rata-rata 7 hari untuk New deaths."})
+
+    p_active = peak_day("Active", rolling=0)
+    if p_active is not None:
+        events.append({"date": p_active, "title": "Puncak kasus aktif", "desc": "Hari dengan Active tertinggi."})
+
+    events.append({"date": end_date, "title": "Akhir periode data", "desc": "Snapshot paling akhir pada dataset."})
+
+    seen = set()
+    uniq = []
+    for e in sorted(events, key=lambda x: x["date"]):
+        key = (pd.to_datetime(e["date"]).date(), e["title"])
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(e)
+    return uniq
+
+
 if "Date" in day_wise.columns and day_wise["Date"].notna().any():
     all_dates = pd.to_datetime(day_wise["Date"].dropna().unique())
     min_date = pd.to_datetime(all_dates.min()).date()
@@ -85,13 +162,13 @@ default_countries = [c for c in ["Indonesia", "US", "Italy", "China", "India"] i
 if not default_countries and all_countries:
     default_countries = all_countries[:3]
 
-
 st.sidebar.title("🧭 Navigation")
 
 page = st.sidebar.radio(
     "Pilih halaman:",
     (
         "🏠 Overview",
+        "📖 Global Timeline Story Mode",
         "🌍 Global Map",
         "📊 Country Dashboard",
         "📈 Country Comparison",
@@ -122,7 +199,7 @@ if page == "🏠 Overview":
     st.write("Ringkasan perkembangan kasus COVID-19 secara global berdasarkan data time-series.")
 
     if "Date" in day_wise.columns and day_wise["Date"].notna().any():
-        latest_row = day_wise.sort_values("Date").iloc[-1]
+        latest_row = day_wise.dropna(subset=["Date"]).sort_values("Date").iloc[-1]
     else:
         st.warning("Kolom Date tidak ditemukan/valid pada day_wise.csv")
         latest_row = pd.Series(dtype="object")
@@ -151,13 +228,7 @@ if page == "🏠 Overview":
                 ],
             }
         )
-        fig_pie = px.pie(
-            pie_data,
-            names="Status",
-            values="Count",
-            hole=0.45,
-            title="Komposisi kasus global (snapshot terakhir)",
-        )
+        fig_pie = px.pie(pie_data, names="Status", values="Count", hole=0.45, title="Komposisi kasus global (snapshot terakhir)")
         fig_pie.update_traces(textposition="inside", textinfo="percent+label")
         st.plotly_chart(fig_pie, use_container_width=True)
 
@@ -166,19 +237,13 @@ if page == "🏠 Overview":
             tmp = country_latest.copy()
             tmp["Confirmed"] = pd.to_numeric(tmp["Confirmed"], errors="coerce").fillna(0)
             top10 = tmp[tmp["Confirmed"] > 0].sort_values("Confirmed", ascending=False).head(10)
-            fig_top = px.bar(
-                top10,
-                x="Country/Region",
-                y="Confirmed",
-                title="🔝 10 negara dengan kasus terkonfirmasi tertinggi",
-            )
+            fig_top = px.bar(top10, x="Country/Region", y="Confirmed", title="🔝 10 negara dengan kasus terkonfirmasi tertinggi")
             fig_top.update_layout(xaxis_tickangle=-45)
             st.plotly_chart(fig_top, use_container_width=True)
         else:
             st.info("Kolom Country/Region atau Confirmed tidak tersedia pada country_wise_latest.csv")
 
     st.markdown("### 📈 Tren global dari waktu ke waktu")
-
     metric_candidates = [m for m in ["Confirmed", "Deaths", "Recovered", "Active"] if m in day_wise.columns]
     metrics_to_plot = st.multiselect(
         "Pilih metrik yang ditampilkan:",
@@ -188,10 +253,7 @@ if page == "🏠 Overview":
 
     if metrics_to_plot and "Date" in day_wise.columns:
         long_df = day_wise[["Date"] + metrics_to_plot].dropna(subset=["Date"]).melt(
-            id_vars="Date",
-            value_vars=metrics_to_plot,
-            var_name="Metric",
-            value_name="Value",
+            id_vars="Date", value_vars=metrics_to_plot, var_name="Metric", value_name="Value"
         )
         fig = px.line(long_df, x="Date", y="Value", color="Metric", title="Perkembangan kasus global")
         fig.update_layout(hovermode="x unified")
@@ -206,13 +268,101 @@ if page == "🏠 Overview":
     corr_cols = [c for c in ["Confirmed", "Deaths", "Recovered", "Active", "New cases", "New deaths", "New recovered"] if c in day_wise.columns]
     if len(corr_cols) >= 2:
         corr_mat = day_wise[corr_cols].corr(numeric_only=True)
-        fig_corr = px.imshow(
-            corr_mat,
-            text_auto=".2f",
-            color_continuous_scale="RdBu_r",
-            title="Matriks korelasi indikator global (harian)",
-        )
+        fig_corr = px.imshow(corr_mat, text_auto=".2f", color_continuous_scale="RdBu_r", title="Matriks korelasi indikator global (harian)")
         st.plotly_chart(fig_corr, use_container_width=True)
+
+
+elif page == "📖 Global Timeline Story Mode":
+    st.header("📖 Global Timeline Story Mode")
+
+    if day_wise.empty or "Date" not in day_wise.columns or not day_wise["Date"].notna().any():
+        st.warning("day_wise.csv tidak valid / kolom Date tidak ditemukan.")
+    else:
+        story_df = day_wise.dropna(subset=["Date"]).sort_values("Date").copy()
+
+        story_metrics = [m for m in ["New cases", "New deaths", "New recovered", "Confirmed", "Deaths", "Recovered", "Active"] if m in story_df.columns]
+        if not story_metrics:
+            st.warning("Tidak ada kolom metrik yang cocok pada day_wise.csv")
+        else:
+            c1, c2, c3 = st.columns([1.3, 1, 1])
+            with c1:
+                story_metric = st.selectbox("Metrik:", options=story_metrics, index=0)
+            with c2:
+                smooth = st.selectbox("Tampilan:", options=["Harian", "Rata-rata 7 hari"], index=1)
+            with c3:
+                date_range = st.slider("Rentang tanggal:", min_value=min_date, max_value=max_date, value=(min_date, max_date))
+
+            story_df = story_df[story_df["Date"].dt.date.between(date_range[0], date_range[1])].copy()
+            story_df[story_metric] = pd.to_numeric(story_df[story_metric], errors="coerce").fillna(0)
+
+            events = build_story_events(story_df)
+            if not events:
+                st.warning("Tidak bisa membangun story events dari data yang tersedia.")
+            else:
+                if "story_idx" not in st.session_state:
+                    st.session_state.story_idx = 0
+
+                labels = [f"{i+1}. {e['title']} ({pd.to_datetime(e['date']).date()})" for i, e in enumerate(events)]
+                selected = st.selectbox("Momen:", options=labels, index=min(st.session_state.story_idx, len(labels) - 1), key="story_event_select")
+                new_idx = labels.index(selected)
+                if new_idx != st.session_state.story_idx:
+                    st.session_state.story_idx = new_idx
+
+                b1, b2, b3 = st.columns([1, 1, 1])
+                with b1:
+                    if st.button("⬅️ Prev", use_container_width=True):
+                        st.session_state.story_idx = max(0, st.session_state.story_idx - 1)
+                with b2:
+                    if st.button("⟲ Reset", use_container_width=True):
+                        st.session_state.story_idx = 0
+                with b3:
+                    if st.button("Next ➡️", use_container_width=True):
+                        st.session_state.story_idx = min(len(events) - 1, st.session_state.story_idx + 1)
+
+                idx = st.session_state.story_idx
+                ev = events[idx]
+                ev_date = pd.to_datetime(ev["date"])
+
+                plot_df = story_df[["Date", story_metric]].copy().sort_values("Date")
+                if smooth == "Rata-rata 7 hari":
+                    plot_df["Value"] = plot_df[story_metric].rolling(7, min_periods=3).mean()
+                else:
+                    plot_df["Value"] = plot_df[story_metric]
+
+                fig = px.line(plot_df, x="Date", y="Value", title=f"{story_metric} ({smooth})")
+                fig.update_layout(hovermode="x unified")
+                fig.add_vline(x=ev_date, line_width=2)
+                fig.add_annotation(
+                    x=ev_date,
+                    y=float(plot_df["Value"].max()) if plot_df["Value"].notna().any() else 0,
+                    text=ev["title"],
+                    showarrow=True,
+                    arrowhead=2,
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+                r = nearest_row_by_date(story_df, ev_date)
+                if r is not None:
+                    st.subheader(f"{ev['title']} — {pd.to_datetime(r['Date']).date()}")
+                    st.write(ev["desc"])
+
+                    m1, m2, m3, m4 = st.columns(4)
+                    with m1:
+                        st.metric("Confirmed", format_number(r.get("Confirmed")))
+                    with m2:
+                        st.metric("Deaths", format_number(r.get("Deaths")))
+                    with m3:
+                        st.metric("Recovered", format_number(r.get("Recovered")))
+                    with m4:
+                        st.metric("Active", format_number(r.get("Active")))
+
+                    n1, n2, n3 = st.columns(3)
+                    with n1:
+                        st.metric("New cases", format_number(r.get("New cases")))
+                    with n2:
+                        st.metric("New deaths", format_number(r.get("New deaths")))
+                    with n3:
+                        st.metric("New recovered", format_number(r.get("New recovered")))
 
 
 elif page == "🌍 Global Map":
@@ -235,8 +385,6 @@ elif page == "🌍 Global Map":
             st.warning("Tidak ada kolom metrik yang cocok di country_wise_latest.csv")
         else:
             metric = st.selectbox("Pilih indikator:", map_metric_options, index=0)
-            st.caption("Data menggunakan country_wise_latest.csv (snapshot terbaru).")
-
             map_df = country_latest.copy()
             if "Confirmed" in map_df.columns:
                 map_df["Confirmed"] = pd.to_numeric(map_df["Confirmed"], errors="coerce").fillna(0)
@@ -277,9 +425,9 @@ elif page == "📊 Country Dashboard":
                 index=all_countries.index("Indonesia") if "Indonesia" in all_countries else 0,
             )
         with c2:
-            log_scale = st.checkbox("Gunakan skala logaritmik untuk grafik?", value=False)
+            log_scale = st.checkbox("Gunakan skala logaritmik?", value=False)
 
-        country_df = full_grouped[full_grouped["Country/Region"] == country].sort_values("Date")
+        country_df = full_grouped[full_grouped["Country/Region"] == country].dropna(subset=["Date"]).sort_values("Date")
         if country_df.empty:
             st.warning("Tidak ada data untuk negara ini.")
         else:
@@ -295,7 +443,6 @@ elif page == "📊 Country Dashboard":
             with c4:
                 st.metric("Active Cases", format_number(latest.get("Active")))
 
-            st.markdown(f"### 🇨🇮 Komposisi kasus & kasus baru di {country}")
             col1, col2 = st.columns(2)
 
             with col1:
@@ -309,59 +456,27 @@ elif page == "📊 Country Dashboard":
                         ],
                     }
                 )
-                fig_pie_country = px.pie(
-                    pie_country,
-                    names="Status",
-                    values="Count",
-                    hole=0.45,
-                    title=f"Komposisi kasus di {country} (snapshot terakhir)",
-                )
+                fig_pie_country = px.pie(pie_country, names="Status", values="Count", hole=0.45, title=f"Komposisi kasus di {country}")
                 fig_pie_country.update_traces(textposition="inside", textinfo="percent+label")
                 st.plotly_chart(fig_pie_country, use_container_width=True)
 
             with col2:
                 new_cols = [c for c in ["New cases", "New deaths", "New recovered"] if c in country_df.columns]
-                if new_cols and "Date" in country_df.columns:
-                    long_new = country_df[["Date"] + new_cols].melt(
-                        id_vars="Date",
-                        value_vars=new_cols,
-                        var_name="Jenis",
-                        value_name="Jumlah",
-                    )
-                    fig_new_country = px.bar(
-                        long_new.dropna(subset=["Date"]),
-                        x="Date",
-                        y="Jumlah",
-                        color="Jenis",
-                        title=f"Kasus baru harian di {country}",
-                    )
+                if new_cols:
+                    long_new = country_df[["Date"] + new_cols].melt(id_vars="Date", value_vars=new_cols, var_name="Jenis", value_name="Jumlah")
+                    fig_new_country = px.bar(long_new, x="Date", y="Jumlah", color="Jenis", title=f"Kasus baru harian di {country}")
                     fig_new_country.update_layout(hovermode="x unified")
                     st.plotly_chart(fig_new_country, use_container_width=True)
-                else:
-                    st.info("Kolom kasus baru tidak tersedia untuk negara ini.")
 
-            st.markdown(f"### Tren waktu di {country}")
             metrics = [m for m in ["Confirmed", "Deaths", "Recovered", "Active", "New cases", "New deaths", "New recovered"] if m in country_df.columns]
             selected_metrics = st.multiselect(
                 "Pilih metrik:",
                 options=metrics,
                 default=[m for m in ["Confirmed", "Deaths", "Recovered"] if m in metrics],
             )
-
-            if selected_metrics and "Date" in country_df.columns:
-                long_c = country_df[["Date"] + selected_metrics].melt(
-                    id_vars="Date",
-                    value_vars=selected_metrics,
-                    var_name="Metric",
-                    value_name="Value",
-                )
-                fig = px.line(
-                    long_c.dropna(subset=["Date"]),
-                    x="Date",
-                    y="Value",
-                    color="Metric",
-                    title=f"Perkembangan kasus di {country}",
-                )
+            if selected_metrics:
+                long_c = country_df[["Date"] + selected_metrics].melt(id_vars="Date", value_vars=selected_metrics, var_name="Metric", value_name="Value")
+                fig = px.line(long_c, x="Date", y="Value", color="Metric", title=f"Perkembangan kasus di {country}")
                 if log_scale:
                     fig.update_yaxes(type="log")
                 fig.update_layout(hovermode="x unified")
@@ -383,47 +498,25 @@ elif page == "📈 Country Comparison":
             st.warning("Tidak ada kolom metrik yang cocok pada full_grouped.csv")
         else:
             metric = st.selectbox("Metrik:", options=metric_options, index=0)
-
-            date_range = st.slider(
-                "Rentang tanggal:",
-                min_value=min_date,
-                max_value=max_date,
-                value=(min_date, max_date),
-            )
+            date_range = st.slider("Rentang tanggal:", min_value=min_date, max_value=max_date, value=(min_date, max_date))
 
             if not countries:
                 st.info("Pilih minimal satu negara.")
             else:
-                compare_df = full_grouped.copy()
-                compare_df = compare_df.dropna(subset=["Date"])
+                compare_df = full_grouped.dropna(subset=["Date"]).copy()
                 compare_df = compare_df[
                     (compare_df["Country/Region"].isin(countries))
                     & (compare_df["Date"].dt.date.between(date_range[0], date_range[1]))
                 ]
-
                 if compare_df.empty:
                     st.warning("Tidak ada data untuk kombinasi filter ini.")
                 else:
-                    fig = px.line(
-                        compare_df,
-                        x="Date",
-                        y=metric,
-                        color="Country/Region",
-                        title=f"{metric} dari waktu ke waktu",
-                    )
+                    fig = px.line(compare_df, x="Date", y=metric, color="Country/Region", title=f"{metric} dari waktu ke waktu")
                     fig.update_layout(hovermode="x unified")
                     st.plotly_chart(fig, use_container_width=True)
 
-                    st.markdown("### Snapshot di tanggal tertentu")
-                    snap_date = st.date_input(
-                        "Pilih tanggal snapshot:",
-                        value=date_range[1],
-                        min_value=date_range[0],
-                        max_value=date_range[1],
-                    )
-
-                    snap_df = compare_df[compare_df["Date"].dt.date == snap_date]
-                    snap_df = snap_df[["Country/Region", metric]].sort_values(metric, ascending=False)
+                    snap_date = st.date_input("Tanggal snapshot:", value=date_range[1], min_value=date_range[0], max_value=date_range[1])
+                    snap_df = compare_df[compare_df["Date"].dt.date == snap_date][["Country/Region", metric]].sort_values(metric, ascending=False)
                     st.dataframe(snap_df.reset_index(drop=True))
 
 
@@ -434,11 +527,7 @@ elif page == "🗽 USA View":
         st.warning("Kolom Province_State tidak ditemukan pada usa_county_wise.csv")
     else:
         states = sorted(usa_county["Province_State"].dropna().unique())
-        state = st.selectbox(
-            "Pilih State:",
-            options=states,
-            index=states.index("New York") if "New York" in states else 0,
-        )
+        state = st.selectbox("Pilih State:", options=states, index=states.index("New York") if "New York" in states else 0)
 
         state_df = usa_county[usa_county["Province_State"] == state].copy()
         if state_df.empty:
@@ -448,58 +537,34 @@ elif page == "🗽 USA View":
             if "Date" not in state_df.columns or not metric_cols:
                 st.warning("Kolom Date/Confirmed/Deaths tidak lengkap pada usa_county_wise.csv")
             else:
-                state_daily = (
-                    state_df.groupby("Date")[metric_cols]
-                    .sum()
-                    .reset_index()
-                    .sort_values("Date")
-                )
+                state_daily = state_df.dropna(subset=["Date"]).groupby("Date")[metric_cols].sum().reset_index().sort_values("Date")
+                latest = state_daily.iloc[-1]
 
                 c1, c2 = st.columns(2)
-                latest = state_daily.iloc[-1]
                 with c1:
                     st.metric("Total Confirmed", format_number(latest.get("Confirmed")))
                 with c2:
                     st.metric("Total Deaths", format_number(latest.get("Deaths")))
 
-                fig = px.line(
-                    state_daily.dropna(subset=["Date"]),
-                    x="Date",
-                    y=metric_cols,
-                    title=f"Perkembangan kasus di {state}",
-                )
+                fig = px.line(state_daily, x="Date", y=metric_cols, title=f"Perkembangan kasus di {state}")
                 st.plotly_chart(fig, use_container_width=True)
 
-                st.markdown(f"### Top 10 county dengan kasus tertinggi di {state}")
                 if "Admin2" in state_df.columns:
                     latest_state = state_df[state_df["Date"] == state_df["Date"].max()]
-                    county_agg = (
-                        latest_state.groupby("Admin2")[metric_cols]
-                        .sum()
-                        .reset_index()
-                    )
+                    county_agg = latest_state.groupby("Admin2")[metric_cols].sum().reset_index()
                     if "Confirmed" in county_agg.columns:
                         top_counties = county_agg.sort_values("Confirmed", ascending=False).head(10)
-                        fig_county = px.bar(
-                            top_counties,
-                            x="Admin2",
-                            y="Confirmed",
-                            hover_data=[c for c in ["Deaths"] if c in top_counties.columns],
-                            title=f"🔝 10 county dengan kasus tertinggi di {state}",
-                        )
+                        fig_county = px.bar(top_counties, x="Admin2", y="Confirmed", hover_data=[c for c in ["Deaths"] if c in top_counties.columns], title=f"🔝 10 county dengan kasus tertinggi di {state}")
                         fig_county.update_layout(xaxis_tickangle=-45)
                         st.plotly_chart(fig_county, use_container_width=True)
 
                 with st.expander("📋 Data county mentah"):
                     show_cols = [c for c in ["Date", "Admin2", "Province_State", "Confirmed", "Deaths"] if c in usa_county.columns]
-                    st.dataframe(
-                        usa_county[usa_county["Province_State"] == state][show_cols].sort_values(["Date", "Admin2"])
-                    )
+                    st.dataframe(usa_county[usa_county["Province_State"] == state][show_cols].sort_values(["Date", "Admin2"]))
 
 
 elif page == "🔥 Insights & Hotspots":
     st.header("🔥 Insights & Hotspots")
-    st.write("Analisis cepat: ranking negara, metrik per kapita (jika tersedia populasi), dan scatter hubungan Confirmed vs Deaths.")
 
     if country_latest.empty or "Country/Region" not in country_latest.columns:
         st.warning("country_wise_latest.csv tidak valid / kolom Country/Region tidak ditemukan.")
@@ -533,46 +598,34 @@ elif page == "🔥 Insights & Hotspots":
         else:
             c1, c2, c3 = st.columns([1.2, 1, 1])
             with c1:
-                metric = st.selectbox("Pilih metrik snapshot:", options=snapshot_metrics, index=0)
+                metric = st.selectbox("Metrik snapshot:", options=snapshot_metrics, index=0)
             with c2:
-                top_n = st.slider("Top N negara:", min_value=5, max_value=50, value=15, step=1)
+                top_n = st.slider("Top N:", min_value=5, max_value=50, value=15, step=1)
             with c3:
-                per_capita = st.checkbox("Per 1M penduduk (jika ada Population)", value=False)
+                per_capita = st.checkbox("Per 1M (jika ada populasi)", value=False)
 
             work = base.copy()
-            per_label = metric
-
             work[metric] = pd.to_numeric(work[metric], errors="coerce")
+            per_label = metric
 
             if per_capita and pop_col is not None and pop_col in work.columns:
                 work["_pop"] = pd.to_numeric(work[pop_col], errors="coerce")
                 work[metric + " per 1M"] = (work[metric] / work["_pop"]) * 1_000_000
                 per_label = metric + " per 1M"
 
-            if per_label in work.columns:
-                work["_m"] = pd.to_numeric(work[per_label], errors="coerce")
-            else:
-                work["_m"] = pd.to_numeric(work[metric], errors="coerce")
-
+            work["_m"] = pd.to_numeric(work[per_label], errors="coerce") if per_label in work.columns else pd.to_numeric(work[metric], errors="coerce")
             work = work.dropna(subset=["_m"])
             work = work[work["_m"] >= 0]
-
             top_df = work.sort_values("_m", ascending=False).head(top_n)
 
-            fig_rank = px.bar(
-                top_df,
-                x="Country/Region",
-                y="_m",
-                title=f"Top {top_n} — {per_label}",
-            )
+            fig_rank = px.bar(top_df, x="Country/Region", y="_m", title=f"Top {top_n} — {per_label}")
             fig_rank.update_layout(xaxis_tickangle=-45, yaxis_title=per_label)
             st.plotly_chart(fig_rank, use_container_width=True)
 
-            x_col = "Confirmed"
-            y_col = "Deaths"
             work["Confirmed"] = pd.to_numeric(work.get("Confirmed"), errors="coerce")
             work["Deaths"] = pd.to_numeric(work.get("Deaths"), errors="coerce")
 
+            x_col, y_col = "Confirmed", "Deaths"
             if per_capita and pop_col is not None and pop_col in work.columns:
                 work["_pop"] = pd.to_numeric(work.get(pop_col), errors="coerce")
                 work["Confirmed per 1M"] = (work["Confirmed"] / work["_pop"]) * 1_000_000
@@ -590,7 +643,7 @@ elif page == "🔥 Insights & Hotspots":
             fig_scatter.update_layout(hovermode="closest")
             st.plotly_chart(fig_scatter, use_container_width=True)
 
-            with st.expander("📋 Data Top (tabel)"):
+            with st.expander("📋 Tabel"):
                 cols = ["Country/Region"]
                 for c in [metric, per_label, "Deaths", "Recovered", "Active", pop_col]:
                     if c and c in top_df.columns and c not in cols:
@@ -599,7 +652,7 @@ elif page == "🔥 Insights & Hotspots":
 
 
 elif page == "⏱️ Timelapse":
-    st.header("⏱️ Timelapse (Interactive)")
+    st.header("⏱️ Timelapse")
 
     if full_grouped.empty or "Date" not in full_grouped.columns or "Country/Region" not in full_grouped.columns:
         st.warning("full_grouped.csv tidak valid / kolom Date atau Country/Region tidak ditemukan.")
@@ -616,14 +669,9 @@ elif page == "⏱️ Timelapse":
             with c3:
                 speed = st.slider("Kecepatan (ms/frame):", min_value=50, max_value=1200, value=250, step=50)
 
-            tl_range = st.slider(
-                "Rentang tanggal:",
-                min_value=min_date,
-                max_value=max_date,
-                value=(min_date, max_date),
-            )
+            tl_range = st.slider("Rentang tanggal:", min_value=min_date, max_value=max_date, value=(min_date, max_date))
 
-            tl_df = full_grouped.copy().dropna(subset=["Date"])
+            tl_df = full_grouped.dropna(subset=["Date"]).copy()
             tl_df = tl_df[tl_df["Date"].dt.date.between(tl_range[0], tl_range[1])]
             tl_df = tl_df.groupby(["Date", "Country/Region"], as_index=False)[tl_metric].sum()
             tl_df["DateStr"] = tl_df["Date"].dt.strftime("%Y-%m-%d")
@@ -688,39 +736,32 @@ elif page == "📑 Data Explorer":
     st.dataframe(df.head(500))
 
     csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        "💾 Download CSV (subset ditampilkan)",
-        data=csv,
-        file_name=f"{dataset_name}.csv",
-        mime="text/csv",
-    )
+    st.download_button("💾 Download CSV (subset ditampilkan)", data=csv, file_name=f"{dataset_name}.csv", mime="text/csv")
 
 
 elif page == "ℹ️ About":
     st.title("ℹ️ About — COVID-19 Global Dashboard")
+
     st.write(
         "Aplikasi ini adalah dashboard interaktif berbasis Streamlit untuk memvisualisasikan perkembangan COVID-19 "
-        "secara global, per negara, hingga level county di USA. Tujuannya membantu memahami tren, perbandingan antar negara, "
-        "dan ringkasan snapshot kasus."
+        "secara global, per negara, hingga level county di USA."
     )
 
     st.subheader("Isi Halaman")
     st.write(
-        "- Overview: ringkasan global (metric, tren, korelasi)\n"
-        "- Global Map: peta sebaran snapshot terbaru per negara\n"
-        "- Country Dashboard: detail 1 negara (tren & kasus baru)\n"
-        "- Country Comparison: membandingkan beberapa negara sekaligus\n"
-        "- USA View: tren per state + top county\n"
-        "- Insights & Hotspots: analisis cepat (ranking, per kapita jika ada populasi, scatter)\n"
-        "- Timelapse: peta animasi perubahan dari waktu ke waktu\n"
-        "- Data Explorer: melihat & mengunduh subset data"
+        "- Overview\n"
+        "- Global Timeline Story Mode\n"
+        "- Global Map\n"
+        "- Country Dashboard\n"
+        "- Country Comparison\n"
+        "- USA View\n"
+        "- Insights & Hotspots\n"
+        "- Timelapse\n"
+        "- Data Explorer"
     )
 
     st.subheader("Sumber Data")
-    st.write(
-        "Dataset berasal dari Kaggle: COVID-19 Corona Virus Report (imdevskp). "
-        "File CSV yang dipakai mencakup time-series global dan ringkasan per negara."
-    )
+    st.write("Dataset berasal dari Kaggle: COVID-19 Corona Virus Report (imdevskp).")
 
     st.subheader("Tim")
     st.write(
