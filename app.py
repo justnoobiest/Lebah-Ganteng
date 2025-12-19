@@ -749,7 +749,7 @@ elif page == "📖 Global Timeline Story Mode":
 
 elif page == "🌍 Global Map":
     st.header("🌍 Global Map")
-    st.markdown("<div class='small-note'>Peta snapshot per negara. Warna menunjukkan besaran indikator pada data terbaru.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>Peta per negara. Warna menunjukkan besaran indikator pada data terbaru.</div>", unsafe_allow_html=True)
 
     if country_latest.empty:
         st.warning("country_wise_latest.csv kosong.")
@@ -1113,7 +1113,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
 
                         cluster_sizes = base2["Cluster"].value_counts().sort_index()
                         st.markdown(
-                            f"<div class='small-note'>Cluster mengelompokkan negara dengan pola indikator yang mirip (berdasarkan fitur snapshot). Dengan k={k}, ukuran cluster: "
+                            f"<div class='small-note'>Cluster mengelompokkan negara dengan pola indikator yang mirip. Dengan k={k}, ukuran cluster: "
                             + ", ".join([f"Cluster {i}: {int(cluster_sizes.get(i,0))}" for i in range(k)])
                             + ".</div>",
                             unsafe_allow_html=True,
@@ -1137,7 +1137,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                         if show_tables:
                             st.dataframe(base2[["Country/Region", "Cluster"] + feat].sort_values(["Cluster", x_axis], ascending=[True, False]).reset_index(drop=True))
 
-            with st.expander("10) Kualitas data & anomali"):
+            with st.expander("10) Data & Anomali"):
                 neg_cases = int((g2["New cases"] < 0).sum()) if "New cases" in g2.columns else 0
                 neg_deaths = int((g2["New deaths"] < 0).sum()) if "New deaths" in g2.columns else 0
                 dupe = 0
@@ -1145,7 +1145,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                     dupe = int(full_grouped.dropna(subset=["Country/Region", "Date"]).duplicated(["Country/Region", "Date"]).sum())
 
                 st.markdown(
-                    f"<div class='small-note'>Cek cepat untuk mendeteksi pola yang sering muncul pada data pelaporan: nilai negatif (revisi/backfill) dan duplikasi. Pada rentang analisis: New cases negatif={neg_cases}, New deaths negatif={neg_deaths}. Duplikasi (Country/Region, Date) di full_grouped={dupe}.</div>",
+                    f"<div class='small-note'>Cek untuk mendeteksi pola yang sering muncul pada data pelaporan: nilai negatif (revisi/backfill) dan duplikasi. Pada rentang analisis: New cases negatif={neg_cases}, New deaths negatif={neg_deaths}. Duplikasi (Country/Region, Date) di full_grouped={dupe}.</div>",
                     unsafe_allow_html=True,
                 )
 
