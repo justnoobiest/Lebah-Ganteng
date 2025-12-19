@@ -600,28 +600,73 @@ if page == "🏠 Overview":
     col1, col2 = st.columns(2)
 
     with col1:
-        pie_data = pd.DataFrame(
-            {
-                "Status": ["Active", "Recovered", "Deaths"],
-                "Count": [
-                    max(float(latest_row.get("Active", 0) or 0), 0),
-                    max(float(latest_row.get("Recovered", 0) or 0), 0),
-                    max(float(latest_row.get("Deaths", 0) or 0), 0),
-                ],
-            }
+        confirmed = float(latest_row.get("Confirmed", 0) or 0)
+        deaths    = float(latest_row.get("Deaths", 0) or 0)
+        recovered = float(latest_row.get("Recovered", 0) or 0)
+        active    = float(latest_row.get("Active", max(confirmed - deaths - recovered, 0)) or 0)
+
+        comp_df = pd.DataFrame({
+            "Status": ["Recovered", "Active", "Deaths"],
+            "Count": [recovered, active, deaths]
+        }).sort_values("Count", ascending=False)
+    
+        fig = go.Figure(go.Pie(
+            labels=comp_df["Status"],
+            values=comp_df["Count"],
+            hole=0.62,
+            textinfo="percent+label",
+            textposition="inside",
+            marker=dict(line=dict(width=1, color="rgba(0,0,0,0.12)"))
+        ))
+    
+        fig.update_layout(
+            title=dict(text="Komposisi Kasus Global", x=0),
+            height=360,
+            margin=dict(l=10, r=10, t=50, b=10),
+            legend=dict(orientation="h", yanchor="top", y=-0.08, xanchor="center", x=0.5),
+            annotations=[dict(
+                text=f"<b>Total</b><br>{int(confirmed):,}".replace(",", "."),
+                x=0.5, y=0.5, showarrow=False, font=dict(size=14)
+            )]
         )
-        fig_pie = px.pie(pie_data, names="Status", values="Count", hole=0.45, title="Komposisi kasus global (snapshot terakhir)")
-        fig_pie.update_traces(textposition="inside", textinfo="percent+label")
-        st.plotly_chart(pastelize(fig_pie), use_container_width=True)
+    
+        try:
+            st.plotly_chart(fig, width="stretch")
+        except TypeError:
+            st.plotly_chart(fig, use_container_width=True)
+
 
     with col2:
-        if "Country/Region" in country_latest.columns and "Confirmed" in country_latest.columns:
+        if {"Country/Region", "Confirmed"}.issubset(country_latest.columns):
             tmp = country_latest.copy()
             tmp["Confirmed"] = pd.to_numeric(tmp["Confirmed"], errors="coerce").fillna(0)
-            top10 = tmp[tmp["Confirmed"] > 0].sort_values("Confirmed", ascending=False).head(10)
-            fig_top = px.bar(top10, x="Country/Region", y="Confirmed", title="🔝 10 negara dengan kasus terkonfirmasi tertinggi")
-            fig_top.update_layout(xaxis_tickangle=-45)
-            st.plotly_chart(pastelize(fig_top), use_container_width=True)
+    
+            top10 = (
+                tmp[tmp["Confirmed"] > 0]
+                .sort_values("Confirmed", ascending=False)
+                .head(10)
+            )
+    
+            fig_top = px.bar(
+                top10,
+                x="Country/Region",
+                y="Confirmed",
+                text="Confirmed",
+                title="Top 10 negara dengan kasus terkonfirmasi tertinggi"
+            )
+            fig_top.update_traces(textposition="outside")
+            fig_top.update_layout(
+                height=360,
+                margin=dict(l=10, r=10, t=50, b=10),
+                xaxis_title="",
+                yaxis_title="Confirmed",
+                xaxis_tickangle=-30
+            )
+    
+            try:
+                st.plotly_chart(fig_top, width="stretch")
+            except TypeError:
+                st.plotly_chart(fig_top, use_container_width=True)
         else:
             st.info("Kolom Country/Region atau Confirmed tidak tersedia pada country_wise_latest.csv")
 

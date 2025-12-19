@@ -1,2 +1,6 @@
 .ipynb_checkpoints/
 *~
+.DS_Store
+*_local.csv
+.DS_Store
+*_local.csv
