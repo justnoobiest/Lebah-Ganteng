@@ -551,7 +551,7 @@ page = st.sidebar.radio(
         "🏠 Overview",
         "📖 Global Timeline",
         "🌍 Global Map",
-        "📘 Analisis Perkembangan COVID-19",
+        "📘 Analisis COVID-19",
         "📊 Country Dashboard",
         "📈 Country Comparison",
         "🗽 USA View",
