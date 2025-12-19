@@ -7,7 +7,7 @@ px.defaults.template = "plotly_white"
 px.defaults.color_discrete_sequence = px.colors.qualitative.Pastel
 px.defaults.color_continuous_scale = px.colors.sequential.YlGn
 
-st.set_page_config(page_title="COVID-19 Global Dashboard", page_icon="😷", layout="wide")
+st.set_page_config(page_title="COVID-19 Global Dashboard", page_icon="🦠", layout="wide")
 
 PASTEL_CSS = """
 <style>
@@ -1503,12 +1503,12 @@ elif page == "📑 Data Explorer":
 
 
 elif page == "ℹ️ About":
-    st.title("ℹ️ About — COVID-19 Global Dashboard")
-    st.markdown("<div class='small-note'>Ringkasan singkat tujuan dashboard, fitur, dan tim pembuat.</div>", unsafe_allow_html=True)
+    st.title("ℹ️ Tentang Kami — COVID-19 Global Dashboard")
+    st.markdown("<div class='small-note'>Ringkasan singkat dashboard.</div>", unsafe_allow_html=True)
 
     st.write(
-        "Aplikasi ini adalah dashboard interaktif berbasis Streamlit untuk memvisualisasikan perkembangan COVID-19 "
-        "secara global, per negara, hingga level county di USA."
+        "Dashboard interaktif berbasis Streamlit untuk memvisualisasikan perkembangan kasus COVID-19 "
+        "secara global."
     )
 
     st.subheader("Isi Halaman")
