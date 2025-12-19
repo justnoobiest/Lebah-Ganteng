@@ -1253,7 +1253,7 @@ elif page == "📊 Country Dashboard":
 
 elif page == "📈 Country Comparison":
     st.header("📈 Country Comparison")
-    st.markdown("<div class='small-note'>Bandingkan beberapa negara pada metrik yang sama untuk melihat perbedaan pola dan level kasus.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>Bandingkan beberapa negara pada metrik yang sama untuk melihat perbedaan pola dan level kasus Covid-19.</div>", unsafe_allow_html=True)
 
     if not all_countries:
         st.warning("Kolom Country/Region tidak ditemukan pada full_grouped.csv")
