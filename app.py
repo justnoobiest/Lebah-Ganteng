@@ -7,7 +7,7 @@ px.defaults.template = "plotly_white"
 px.defaults.color_discrete_sequence = px.colors.qualitative.Pastel
 px.defaults.color_continuous_scale = px.colors.sequential.YlGn
 
-st.set_page_config(page_title="COVID-19 Global Dashboard", page_icon="🦠", layout="wide")
+st.set_page_config(page_title="COVID-19 Global Dashboard", page_icon="😷💉💊", layout="wide")
 
 PASTEL_CSS = """
 <style>
