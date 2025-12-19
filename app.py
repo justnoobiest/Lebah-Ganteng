@@ -1468,7 +1468,7 @@ elif page == "⏱️ Timelapse":
 
 elif page == "📑 Data Explorer":
     st.header("📑 Data Explorer")
-    st.markdown("<div class='small-note'>Preview dataset mentah dan unduh subset yang ditampilkan.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>Preview dataset mentah.</div>", unsafe_allow_html=True)
 
     dataset_name = st.selectbox(
         "Pilih dataset:",
@@ -1511,7 +1511,7 @@ elif page == "ℹ️ About":
         "secara global."
     )
 
-    st.subheader("Isi Halaman")
+    st.subheader("Halaman Ini Memuat📚")
     st.write(
         "- Overview\n"
         "- Global Timeline Story Mode\n"
