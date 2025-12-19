@@ -1376,7 +1376,7 @@ elif page == "🗽 USA View":
                     st.dataframe(usa_county[usa_county["Province_State"] == state][show_cols].sort_values(["Date", "Admin2"]))
 
 
-elif page == "🇮🇩 Indonesia Province View":
+elif page == "🇮🇩 Indonesia View":
     indonesia_province_view()
 
 
