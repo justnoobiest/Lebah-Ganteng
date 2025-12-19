@@ -700,8 +700,8 @@ if page == "🏠 Overview":
         st.plotly_chart(pastelize(fig_corr), use_container_width=True)
 
 
-elif page == "📖 Global Timeline Story Mode":
-    st.header("📖 Global Timeline Story Mode")
+elif page == "📖 Global Timeline":
+    st.header("📖 Global Timeline")
     st.markdown("<div class='small-note'>Mode untuk menelusuri momen penting pada time series global berdasarkan indikator yang dipilih.</div>", unsafe_allow_html=True)
 
     if day_wise.empty or "Date" not in day_wise.columns or not day_wise["Date"].notna().any():
@@ -839,8 +839,8 @@ elif page == "🌍 Global Map":
                     st.dataframe(map_df.head(50))
 
 
-elif page == "📘 Analisis Data Perkembangan COVID-19":
-    st.title("📘 Analisis Data Perkembangan COVID-19")
+elif page == "📘 Analisis COVID-19":
+    st.title("📘 Analisis COVID-19")
     st.markdown("<div class='small-note'>Analisis kasus Covid-19 berbasis tren, gelombang, jeda kasus kematian.</div>", unsafe_allow_html=True)
 
     if day_wise.empty or "Date" not in day_wise.columns or not day_wise["Date"].notna().any():
@@ -1560,9 +1560,9 @@ elif page == "ℹ️ About":
     st.subheader("Halaman Ini Memuat📚")
     st.write(
         "- Overview\n"
-        "- Global Timeline Story Mode\n"
+        "- Global Timeline\n"
         "- Global Map\n"
-        "- Analisis Data Perkembangan COVID-19\n"
+        "- Analisis COVID-19\n"
         "- Country Dashboard\n"
         "- Country Comparison\n"
         "- USA View\n"
