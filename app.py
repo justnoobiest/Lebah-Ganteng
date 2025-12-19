@@ -578,7 +578,7 @@ st.sidebar.markdown(
 
 if page == "🏠 Overview":
     st.markdown("<h1 style='text-align:center'>🦠 COVID-19 Global Dashboard</h1>", unsafe_allow_html=True)
-    st.markdown("<div class='small-note'>Ringkasan perkembangan kasus COVID-19 secara global berdasarkan data time-series.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>Ringkasan perkembangan kasus COVID-19 secara global berdasarkan data time series.</div>", unsafe_allow_html=True)
 
     if "Date" in day_wise.columns and day_wise["Date"].notna().any():
         latest_row = day_wise.dropna(subset=["Date"]).sort_values("Date").iloc[-1]
@@ -596,7 +596,7 @@ if page == "🏠 Overview":
     with c4:
         st.metric("Active Cases", format_number(latest_row.get("Active")))
 
-    st.markdown("### 🌐 Komposisi kasus global & negara dengan kasus terbanyak")
+    st.markdown("### 🌐 Komposisi Kasus Global")
     col1, col2 = st.columns(2)
 
     with col1:
@@ -656,7 +656,7 @@ if page == "🏠 Overview":
 
 elif page == "📖 Global Timeline Story Mode":
     st.header("📖 Global Timeline Story Mode")
-    st.markdown("<div class='small-note'>Mode untuk menelusuri momen penting pada time-series global berdasarkan indikator yang dipilih.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>Mode untuk menelusuri momen penting pada time series global berdasarkan indikator yang dipilih.</div>", unsafe_allow_html=True)
 
     if day_wise.empty or "Date" not in day_wise.columns or not day_wise["Date"].notna().any():
         st.warning("day_wise.csv tidak valid / kolom Date tidak ditemukan.")
