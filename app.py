@@ -7,7 +7,7 @@ px.defaults.template = "plotly_white"
 px.defaults.color_discrete_sequence = px.colors.qualitative.Pastel
 px.defaults.color_continuous_scale = px.colors.sequential.YlGn
 
-st.set_page_config(page_title="COVID-19 Global Dashboard", page_icon="😷💉💊", layout="wide")
+st.set_page_config(page_title="COVID-19 Global Dashboard", page_icon="😷", layout="wide")
 
 PASTEL_CSS = """
 <style>
@@ -241,7 +241,7 @@ def build_story_events(df):
     start_date = pd.to_datetime(d["Date"].min())
     end_date = pd.to_datetime(d["Date"].max())
 
-    events.append({"date": start_date, "title": "Awal periode data", "desc": "Mulai observasi time-series."})
+    events.append({"date": start_date, "title": "Awal periode", "desc": "Mulai dimulainya observasi time-series."})
 
     f_cases = first_above("New cases", frac=0.01)
     if f_cases is not None:
