@@ -1336,7 +1336,7 @@ elif page == "🇮🇩 Indonesia Province View":
 
 elif page == "🔥 Insights & Hotspots":
     st.header("🔥 Insights & Hotspots")
-    st.markdown("<div class='small-note'>Ringkas insight snapshot: ranking, per kapita (jika ada populasi), dan hubungan antar indikator.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>Ringkasan singkat mengenai berbagai indikator.</div>", unsafe_allow_html=True)
 
     if country_latest.empty or "Country/Region" not in country_latest.columns:
         st.warning("country_wise_latest.csv tidak valid / kolom Country/Region tidak ditemukan.")
