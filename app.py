@@ -554,7 +554,7 @@ page = st.sidebar.radio(
         "📊 Country Dashboard",
         "📈 Country Comparison",
         "🗽 USA View",
-	"🇮🇩 Indonesia Province View",
+	"🇮🇩 Indonesia's View",
         "🔥 Insights & Hotspots",
         "⏱️ Timelapse",
         "📑 Data Explorer",
