@@ -241,19 +241,19 @@ def build_story_events(df):
     start_date = pd.to_datetime(d["Date"].min())
     end_date = pd.to_datetime(d["Date"].max())
 
-    events.append({"date": start_date, "title": "Awal periode", "desc": "Mulai dimulainya observasi time-series."})
+    events.append({"date": start_date, "title": "Awal terdeteksinya Covid-19", "desc": "Mulai dimulainya observasi."})
 
     f_cases = first_above("New cases", frac=0.01)
     if f_cases is not None:
-        events.append({"date": f_cases, "title": "Kasus baru mulai meningkat", "desc": "Hari pertama New cases mencapai ambang signifikan."})
+        events.append({"date": f_cases, "title": "Peningkatan kasus Covid-19", "desc": "Hari pertama kasus mencapai ambang signifikan."})
 
     f_deaths = first_above("New deaths", frac=0.01)
     if f_deaths is not None:
-        events.append({"date": f_deaths, "title": "Kematian baru mulai meningkat", "desc": "Hari pertama New deaths mencapai ambang signifikan."})
+        events.append({"date": f_deaths, "title": "Peningkatan kasus kematian akibat Covid-19", "desc": "Hari pertama kasus kematian akibat Covid-19 mencapai ambang signifikan."})
 
     p_cases = peak_day("New cases", rolling=7) or peak_day("New cases", rolling=0)
     if p_cases is not None:
-        events.append({"date": p_cases, "title": "Puncak kasus baru (7D avg)", "desc": "Puncak rata-rata 7 hari untuk New cases."})
+        events.append({"date": p_cases, "title": "Puncak kasus baru (rata-rata dalam 7-days)", "desc": "Puncak rata-rata 7 hari untuk New cases."})
 
     p_deaths = peak_day("New deaths", rolling=7) or peak_day("New deaths", rolling=0)
     if p_deaths is not None:
