@@ -656,7 +656,7 @@ if page == "🏠 Overview":
 
 elif page == "📖 Global Timeline Story Mode":
     st.header("📖 Global Timeline Story Mode")
-    st.markdown("<div class='small-note'>Mode naratif untuk menelusuri momen penting pada time-series global berdasarkan indikator yang dipilih.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>Mode untuk menelusuri momen penting pada time-series global berdasarkan indikator yang dipilih.</div>", unsafe_allow_html=True)
 
     if day_wise.empty or "Date" not in day_wise.columns or not day_wise["Date"].notna().any():
         st.warning("day_wise.csv tidak valid / kolom Date tidak ditemukan.")
@@ -749,7 +749,7 @@ elif page == "📖 Global Timeline Story Mode":
 
 elif page == "🌍 Global Map":
     st.header("🌍 Global Map")
-    st.markdown("<div class='small-note'>Peta per negara. Warna menunjukkan besaran indikator pada data terbaru.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>Peta per negara. Warna menunjukkan besaran indikator.</div>", unsafe_allow_html=True)
 
     if country_latest.empty:
         st.warning("country_wise_latest.csv kosong.")
