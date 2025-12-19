@@ -1415,7 +1415,7 @@ elif page == "🔥 Insights & Hotspots":
 
 elif page == "⏱️ Timelapse":
     st.header("⏱️ Timelapse")
-    st.markdown("<div class='small-note'>Animasi peta dari waktu ke waktu untuk melihat perubahan indikator secara global.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>Menampilkan peta indikator dari waktu ke waktu secara global.</div>", unsafe_allow_html=True)
 
     if full_grouped.empty or "Date" not in full_grouped.columns or "Country/Region" not in full_grouped.columns:
         st.warning("full_grouped.csv tidak valid / kolom Date atau Country/Region tidak ditemukan.")
