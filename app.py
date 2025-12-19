@@ -487,7 +487,7 @@ def load_idn_data():
     return df
 
 def indonesia_province_view():
-    st.title("🇮🇩 Indonesia Province View")
+    st.title("🏝️ Indonesia Province View")
     st.caption("Pilih provinsi untuk melihat tren dan perbandingan antar provinsi.")
 
     df = load_idn_data()
@@ -555,7 +555,7 @@ page = st.sidebar.radio(
         "📊 Country Dashboard",
         "📈 Country Comparison",
         "🗽 USA View",
-    	"🇮🇩 Indonesia View",
+    	"🏝️ Indonesia View",
         "🔥 Insights & Hotspots",
         "⏱️ Timelapse",
         "📑 Data Explorer",
@@ -1376,7 +1376,7 @@ elif page == "🗽 USA View":
                     st.dataframe(usa_county[usa_county["Province_State"] == state][show_cols].sort_values(["Date", "Admin2"]))
 
 
-elif page == "🇮🇩 Indonesia View":
+elif page == "🏝️ Indonesia View":
     indonesia_province_view()
 
 
