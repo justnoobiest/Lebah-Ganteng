@@ -795,7 +795,7 @@ elif page == "🌍 Global Map":
 
 elif page == "📘 Analisis Data Perkembangan COVID-19":
     st.title("📘 Analisis Data Perkembangan COVID-19")
-    st.markdown("<div class='small-note'>Analisis singkat berbasis data: tren, gelombang, jeda kasus→kematian, CFR, per kapita, hotspot, perbandingan, cluster, dan cek kualitas data.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>Analisis kasus Covid-19 berbasis tren, gelombang, jeda kasus kematian.</div>", unsafe_allow_html=True)
 
     if day_wise.empty or "Date" not in day_wise.columns or not day_wise["Date"].notna().any():
         st.warning("day_wise.csv tidak valid / kolom Date tidak ditemukan.")
@@ -834,9 +834,9 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
             prev_deaths_7 = float(prev_7["New deaths"].sum()) if ("New deaths" in g2.columns and not prev_7.empty) else np.nan
             wow_deaths = (last_deaths_7 - prev_deaths_7) / prev_deaths_7 if prev_deaths_7 and prev_deaths_7 > 0 else np.nan
 
-            with st.expander("1) Ringkasan global & perubahan pekanan", expanded=True):
+            with st.expander("1) Ringkasan Global", expanded=True):
                 st.markdown(
-                    f"<div class='small-note'>Bagian ini merangkum kondisi pada akhir rentang analisis, lalu membandingkan total kasus/kematian baru 7 hari terakhir vs 7 hari sebelumnya. Dari data terlihat {trend_phrase(wow_cases)} Untuk kematian baru, {trend_phrase(wow_deaths)}</div>",
+                    f"<div class='small-note'>Bagian ini merangkum kondisi pada akhir rentang analisis, lalu membandingkan total kasus/kematian baru pada 7 hari terakhir dengan 7 hari sebelumnya. Dari data terlihat {trend_phrase(wow_cases)} Untuk kematian baru, {trend_phrase(wow_deaths)}</div>",
                     unsafe_allow_html=True,
                 )
 
@@ -867,7 +867,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                     fig.update_layout(hovermode="x unified")
                     st.plotly_chart(pastelize(fig), use_container_width=True)
 
-            with st.expander("2) Identifikasi gelombang (berdasarkan New cases 7D)"):
+            with st.expander("2) Identifikasi Gelombang Kasus (berdasarkan 7-Days New Cases)"):
                 if "New cases 7D" not in g2.columns or g2["New cases 7D"].isna().all():
                     st.info("Kolom New cases tidak tersedia untuk membangun gelombang.")
                 else:
@@ -875,7 +875,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                     if waves:
                         biggest = max(waves, key=lambda w: w["Peak value"])
                         st.markdown(
-                            f"<div class='small-note'>Gelombang didekati dari puncak New cases (rata-rata 7 hari). Pada rentang ini terdeteksi {len(waves)} puncak dominan; puncak terbesar terjadi sekitar {biggest['Peak']} dengan nilai ~{format_number(biggest['Peak value'])}.</div>",
+                            f"<div class='small-note'>Pada rentang ini terdeteksi {len(waves)} puncak dominan, puncak terbesar terjadi sekitar {biggest['Peak']} dengan nilai ~{format_number(biggest['Peak value'])}.</div>",
                             unsafe_allow_html=True,
                         )
                     else:
@@ -889,7 +889,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                     if waves:
                         st.dataframe(pd.DataFrame(waves).sort_values("Peak value", ascending=False).reset_index(drop=True))
 
-            with st.expander("3) Kasus vs kematian: analisis jeda waktu (lag)"):
+            with st.expander("3) Kasus vs Kematian: Analisis Jeda Waktu (Lag)"):
                 if "New cases 7D" not in g2.columns or "New deaths 7D" not in g2.columns:
                     st.info("Butuh kolom New cases dan New deaths untuk analisis lag.")
                 else:
@@ -900,7 +900,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                     else:
                         best = ldf.loc[ldf["Correlation"].idxmax()]
                         st.markdown(
-                            f"<div class='small-note'>Bagian ini mengukur keterlambatan kematian terhadap kasus (menggunakan korelasi pada beberapa lag). Dari data, korelasi tertinggi terjadi pada lag sekitar <b>{int(best['Lag (days)'])} hari</b>.</div>",
+                            f"<div class='small-note'>Bagian ini mengukur jeda waktu kematian terhadap kasus (menggunakan korelasi pada beberapa lag). Korelasi tertinggi terjadi pada lag sekitar <b>{int(best['Lag (days)'])} hari</b>.</div>",
                             unsafe_allow_html=True,
                         )
                         fig = px.line(ldf, x="Lag (days)", y="Correlation", title="Korelasi New deaths 7D terhadap New cases 7D pada berbagai lag")
@@ -908,7 +908,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
 
             snap = build_country_metrics_snapshot()
 
-            with st.expander("4) CFR & Recovery rate: snapshot per negara"):
+            with st.expander("4) CFR & Recovery Rate: Highlight pada Setiap Negara"):
                 if snap.empty or "Country/Region" not in snap.columns:
                     st.info("country_wise_latest.csv tidak cukup untuk analisis ini.")
                 else:
@@ -927,7 +927,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                         top_cfr = show.iloc[0]["CFR"]
 
                         st.markdown(
-                            f"<div class='small-note'>CFR (Deaths/Confirmed) menunjukkan proporsi kematian dari kasus terkonfirmasi (dipengaruhi kapasitas testing & pelaporan). Pada filter ini, CFR tertinggi ada pada <b>{top_country}</b> (~{format_pct(top_cfr, 2)}).</div>",
+                            f"<div class='small-note'>CFR (Deaths/Confirmed) menunjukkan proporsi kematian dari kasus yang terkonfirmasi. Pada filter ini, CFR tertinggi ada pada <b>{top_country}</b> (~{format_pct(top_cfr, 2)}).</div>",
                             unsafe_allow_html=True,
                         )
 
@@ -943,7 +943,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                         if show_tables:
                             st.dataframe(show[["Country/Region", "Confirmed", "Deaths", "Recovered", "Active", "CFR", "Recovery rate"]].reset_index(drop=True))
 
-            with st.expander("5) Per 1 juta penduduk (jika populasi tersedia)"):
+            with st.expander("5) Per 1 Juta Penduduk"):
                 if snap.empty or "_pop" not in snap.columns or snap["_pop"].dropna().empty:
                     st.info("Kolom populasi tidak tersedia pada worldometer_data.csv (atau tidak bisa dicocokkan).")
                 else:
@@ -957,7 +957,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
 
                     if not show.empty:
                         st.markdown(
-                            f"<div class='small-note'>Per 1 juta penduduk membantu membandingkan beban kasus antar negara dengan ukuran populasi berbeda. Untuk metrik ini, peringkat teratas adalah <b>{show.iloc[0]['Country/Region']}</b>.</div>",
+                            f"<div class='small-note'>Bagian ini membantu membandingkan beban kasus antarnegara yang memiliki ukuran populasi berbeda. Untuk metrik ini, peringkat teratas adalah <b>{show.iloc[0]['Country/Region']}</b>.</div>",
                             unsafe_allow_html=True,
                         )
 
@@ -973,7 +973,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
 
             hot = build_country_14d_hotspots()
 
-            with st.expander("6) Hotspots terbaru (14 hari terakhir vs 14 hari sebelumnya)"):
+            with st.expander("6) Hotspots : 14 Hari Terakhir vs 14 Hari Sebelumnya)"):
                 if hot.empty:
                     st.info("Tidak ada data hotspots (butuh full_grouped.csv + kolom New cases).")
                 else:
@@ -990,7 +990,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
 
                     if not inc.empty and not dec.empty:
                         st.markdown(
-                            f"<div class='small-note'>Hotspot menunjukkan negara yang mengalami perubahan paling tajam. Pada filter ini, lonjakan terbesar dipimpin <b>{inc.iloc[0]['Country/Region']}</b>, sedangkan penurunan terbesar dipimpin <b>{dec.iloc[0]['Country/Region']}</b>.</div>",
+                            f"<div class='small-note'>Menunjukkan negara yang mengalami perubahan paling tajam. Pada filter ini, lonjakan terbesar dipimpin <b>{inc.iloc[0]['Country/Region']}</b>, sedangkan penurunan terbesar dipimpin <b>{dec.iloc[0]['Country/Region']}</b>.</div>",
                             unsafe_allow_html=True,
                         )
 
@@ -1007,7 +1007,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                     if show_tables:
                         st.dataframe(hw.sort_values("Pct change", ascending=False).reset_index(drop=True))
 
-            with st.expander("7) Analisis negara pilihan (tren, volatilitas, dan puncak)"):
+            with st.expander("7) Analisis Negara Pilihan (Tren, Volatilitas, dan Puncak)"):
                 if full_grouped.empty or "Country/Region" not in full_grouped.columns or "Date" not in full_grouped.columns:
                     st.info("full_grouped.csv tidak valid untuk analisis negara.")
                 else:
@@ -1037,7 +1037,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                         vol = float(np.nanstd(cdf["Pct"])) if cdf["Pct"].notna().any() else np.nan
 
                         st.markdown(
-                            f"<div class='small-note'>Grafik ini menampilkan nilai harian dan smoothing (rolling) agar pola lebih jelas. Pada rentang ini, puncak <b>{met}</b> (rolling {window} hari) terjadi sekitar <b>{peak_date}</b>. Volatilitas perubahan hariannya ~{format_float(vol*100, 2)}%.</div>",
+                            f"<div class='small-note'>Pada rentang ini, puncak <b>{met}</b> (rolling {window} hari) terjadi sekitar <b>{peak_date}</b>. Volatilitas perubahan hariannya ~{format_float(vol*100, 2)}%.</div>",
                             unsafe_allow_html=True,
                         )
 
@@ -1053,7 +1053,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                         if show_tables:
                             st.dataframe(cdf[["Date", met, "Rolling", "Pct"]].reset_index(drop=True))
 
-            with st.expander("8) Perbandingan negara (radar sederhana)"):
+            with st.expander("8) Perbandingan Antar Negara"):
                 if snap.empty:
                     st.info("Snapshot negara tidak tersedia.")
                 else:
@@ -1073,7 +1073,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                                 st.info("Data negara terpilih tidak lengkap pada fitur yang dipilih.")
                             else:
                                 st.markdown(
-                                    "<div class='small-note'>Radar menampilkan skor ternormalisasi (0–1) agar beberapa indikator bisa dibandingkan dalam satu tampilan. Semakin besar area, semakin tinggi skor relatif pada indikator yang dipilih.</div>",
+                                    "<div class='small-note'>Menampilkan skor 0–1 atas beberapa indikator agar bisa dibandingkan dalam satu tampilan. Semakin besar area, semakin tinggi skor relatif pada indikator yang dipilih.</div>",
                                     unsafe_allow_html=True,
                                 )
 
@@ -1086,7 +1086,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
                                 fig = px.line_polar(long, r="Score", theta="Feature", color="Country/Region", line_close=True, title="Skor ternormalisasi (0–1)")
                                 st.plotly_chart(pastelize(fig), use_container_width=True)
 
-            with st.expander("9) Segmentasi negara (cluster sederhana)"):
+            with st.expander("9) Segmentasi Negara (Cluster Sederhana)"):
                 if snap.empty:
                     st.info("Snapshot negara tidak tersedia.")
                 else:
