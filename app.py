@@ -1287,8 +1287,8 @@ elif page == "📈 Country Comparison":
 
 
 elif page == "🗽 USA View":
-    st.header("🗽 USA County / State View")
-    st.markdown("<div class='small-note'>Fokus USA: pilih state untuk melihat tren dan top county pada state tersebut.</div>", unsafe_allow_html=True)
+    st.header("🗽 USA Country / State View")
+    st.markdown("<div class='small-note'>Pilih state untuk melihat tren.</div>", unsafe_allow_html=True)
 
     if "Province_State" not in usa_county.columns:
         st.warning("Kolom Province_State tidak ditemukan pada usa_county_wise.csv")
