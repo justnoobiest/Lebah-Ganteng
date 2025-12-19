@@ -1177,7 +1177,7 @@ elif page == "📘 Analisis Data Perkembangan COVID-19":
 
 elif page == "📊 Country Dashboard":
     st.header("📊 Country Dashboard")
-    st.markdown("<div class='small-note'>Pilih negara untuk melihat KPI, tren waktu, komposisi kasus, dan perubahan harian.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='small-note'>Pilih negara untuk melihat tren kasus dari waktu ke waktu.</div>", unsafe_allow_html=True)
 
     if not all_countries:
         st.warning("Kolom Country/Region tidak ditemukan pada full_grouped.csv")
