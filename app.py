@@ -253,15 +253,15 @@ def build_story_events(df):
 
     p_cases = peak_day("New cases", rolling=7) or peak_day("New cases", rolling=0)
     if p_cases is not None:
-        events.append({"date": p_cases, "title": "Puncak kasus baru (rata-rata dalam 7-days)", "desc": "Puncak rata-rata 7 hari untuk New cases."})
+        events.append({"date": p_cases, "title": "Puncak kasus baru (rata-rata dalam 7-days)", "desc": "Puncak kasus baru dalam rata-rata 7 hari."})
 
     p_deaths = peak_day("New deaths", rolling=7) or peak_day("New deaths", rolling=0)
     if p_deaths is not None:
-        events.append({"date": p_deaths, "title": "Puncak kematian baru (7D avg)", "desc": "Puncak rata-rata 7 hari untuk New deaths."})
+        events.append({"date": p_deaths, "title": "Puncak kematian baru (rata-rata dalam 7-days)", "desc": "Puncak kematian baru dalam rata-rata 7 hari."})
 
     p_active = peak_day("Active", rolling=0)
     if p_active is not None:
-        events.append({"date": p_active, "title": "Puncak kasus aktif", "desc": "Hari dengan Active tertinggi."})
+        events.append({"date": p_active, "title": "Puncak kasus aktif", "desc": "Hari dengan kasus aktif tertinggi."})
 
     events.append({"date": end_date, "title": "Akhir periode data", "desc": "Snapshot paling akhir pada dataset."})
 
@@ -554,7 +554,7 @@ page = st.sidebar.radio(
         "📊 Country Dashboard",
         "📈 Country Comparison",
         "🗽 USA View",
-	"🇮🇩 Indonesia's View",
+    	"🇮🇩 Indonesia s View",
         "🔥 Insights & Hotspots",
         "⏱️ Timelapse",
         "📑 Data Explorer",
